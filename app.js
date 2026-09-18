@@ -1,3 +1,4 @@
+import {initVideoBuilder,renderRecipientVideo} from './video.js';
 import {reactFig} from './scene.js';
 import {ScratchCard} from './scratch.js';
 import {Analytics,revealedOnDevice,rememberReveal} from './analytics.js';
@@ -19,8 +20,8 @@ function showMode(next){
 function update(){
  if(mode==='preview')showMode('editor');
  const current=draft();renderCard(current);$('#foil-label').textContent='Scratch here';$('#message-count').textContent=`${$('#message').value.length} / 1200`;scratch.reset({color:current.color});
- $('#create').disabled=busy||!config.ready||!current.message;
- for(const option of document.querySelectorAll('.message-option'))option.setAttribute('aria-pressed',String(option.dataset.message===current.message));
+ $('#create').disabled=busy||!config.ready||!current.message||!current.to||!current.from;
+ for(const option of document.querySelectorAll('#card-form .message-option'))option.setAttribute('aria-pressed',String(option.dataset.message===current.message));
  const input=$('#message');input.style.height='auto';input.style.height=`${Math.min(260,Math.max(78,input.scrollHeight))}px`;
 }
 function valid(){if(!$('#card-form').reportValidity())return false;if(!draft().message){announce('Choose a message or write your own first.');return false;}return true;}
@@ -30,12 +31,12 @@ let config={ready:false,analytics:false};try{config=await(await fetch('/api/conf
 analytics=new Analytics(config,Boolean(recipient));
 if(recipient){
  document.body.classList.add('recipient');mode='recipient';$('#preview').hidden=true;$('#preview-actions').hidden=true;$('#editor-panel').hidden=true;$('#card').hidden=true;$('#preview-caption').textContent='This one’s for you.';announce('Opening your surprise…');
- try{const response=await fetch(`/api/cards/${encodeURIComponent(recipient[1])}`);const card=await response.json();if(!response.ok)throw Error(card.error||'We couldn’t find that surprise.');renderCard(card);$('#card').hidden=false;const done=revealedOnDevice(recipient[1]);scratch.reset({color:card.color,enabled:true,revealed:done});$('#reveal').hidden=done;$('#make-card').hidden=!done;analytics.event('recipient_opened',{},true);announce('');
+ try{const response=await fetch(`/api/cards/${encodeURIComponent(recipient[1])}`);const card=await response.json();if(!response.ok)throw Error(card.error||'We couldn’t find that surprise.');renderCard(card);$('#card').hidden=false;const isVideo=card.type==='video';const done=!isVideo&&revealedOnDevice(recipient[1]);if(isVideo){renderRecipientVideo(card,analytics);$('#reveal').hidden=true;$('#make-card').hidden=false;}else{scratch.reset({color:card.color,enabled:true,revealed:done});$('#reveal').hidden=done;$('#make-card').hidden=!done;}analytics.event('recipient_opened',{},true);announce('');
  const stage=$('.card-stage'),envelope=$('#open-envelope'),cardElement=$('#card');
  stage.classList.add('mail-closed');envelope.hidden=false;cardElement.inert=true;cardElement.setAttribute('aria-hidden','true');$('#preview-caption').textContent='You’ve got a card.';
  envelope.addEventListener('click',()=>{
   if(envelope.disabled)return;envelope.disabled=true;stage.classList.remove('mail-closed');stage.classList.add('mail-opening');
-  const finish=()=>{stage.classList.remove('mail-opening');envelope.hidden=true;cardElement.inert=false;cardElement.removeAttribute('aria-hidden');$('#preview-caption').textContent='This one’s for you.';const target=done?$('#make-card'):$('#reveal');target.focus({preventScroll:true});};
+  const finish=()=>{stage.classList.remove('mail-opening');envelope.hidden=true;cardElement.inert=false;cardElement.removeAttribute('aria-hidden');$('#preview-caption').textContent='This one’s for you.';const target=isVideo?$('#recipient-video-play'):done?$('#make-card'):$('#reveal');target.focus({preventScroll:true});};
   if(matchMedia('(prefers-reduced-motion: reduce)').matches)finish();else setTimeout(finish,1200);
  });}
  catch(error){$('.card-stage').hidden=true;$('#recipient-error').hidden=false;$('#recipient-error-message').textContent=error.message;announce('');}
@@ -43,7 +44,7 @@ if(recipient){
  analytics.event('landing_visited',{},true);analytics.event('creator_opened',{},true);
  if(!config.ready){$('#create').disabled=true;announce('Preview your surprise now. Saving cards will be available once the studio is connected.');}
  for(const key of fields)$(`#${key}`).addEventListener('input',update);
- for(const option of document.querySelectorAll('.message-option'))option.addEventListener('click',()=>{$('#message').value=option.dataset.message;update();announce('');});
+ for(const option of document.querySelectorAll('#card-form .message-option'))option.addEventListener('click',()=>{$('#message').value=option.dataset.message;update();announce('');});
  for(const radio of document.querySelectorAll('input[name="color"]'))radio.addEventListener('change',update);
  $('#photo').addEventListener('click',()=>$('#photo-restrictions').hidden=false);
  async function addPhoto(file){
@@ -74,29 +75,31 @@ if(recipient){
   if(!saved||JSON.stringify(saved.card)!==JSON.stringify(card)){const response=await fetch('/api/cards',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...card,analytics:analytics.creation()})});const result=await response.json();if(!response.ok)throw Error(result.error||'Your card couldn’t be saved.');saved={...result,card};}
   $('#share-url').value=saved.url;$('#share').hidden=!navigator.share;showMode('finished');reactFig('Ready to send!');$('#copy').focus();
  }catch(error){announce(error.message||'Your card couldn’t be saved. Please try again.');}
- finally{busy=false;$('#create').disabled=!config.ready||!draft().message;$('#create').innerHTML='Create card <span aria-hidden="true">↗</span>';}
+ finally{busy=false;$('#create').disabled=!config.ready||!draft().message||!draft().to||!draft().from;$('#create').innerHTML='Create card <span aria-hidden="true">↗</span>';}
  });
  async function copy(){try{if(navigator.clipboard&&window.isSecureContext)await navigator.clipboard.writeText(saved.url);else{const input=$('#share-url');input.focus();input.select();if(!document.execCommand('copy'))throw Error();}announce('Link copied. Ready to send.');$('#copy').textContent='Copied ✓';setTimeout(()=>$('#copy').textContent='Copy link',2000);}catch{$('#share-url').focus();$('#share-url').select();announce('Select and copy the link above to share your card.');}}
  $('#copy').addEventListener('click',()=>{analytics.event('copy_link_clicked');void copy();});
  $('#share').addEventListener('click',async()=>{if(!saved)return;if(!navigator.share)return copy();analytics.event('native_share_action');try{await navigator.share({title:'You’ve got a surprise — SendFiggle',text:'A little surprise, delivered.',url:saved.url});}catch(error){if(error.name!=='AbortError')await copy();}});
  update();
+ initVideoBuilder(config,analytics);
 }
 
 // Builder card follows the desktop cursor across the page, not only over the foil.
 const cardWrap=document.querySelector('.card-wrap');
+const builderCardWraps=[...document.querySelectorAll('.card-wrap')];
 const motionPreference=matchMedia('(prefers-reduced-motion: reduce)');
 const finePointer=matchMedia('(hover: hover) and (pointer: fine)');
 let tiltFrame=0;
-function clearTilt(){cancelAnimationFrame(tiltFrame);tiltFrame=0;for(const [key,value]of [['--tilt-x','0deg'],['--tilt-y','0deg'],['--card-shift-x','0px'],['--card-shift-y','0px']])cardWrap.style.setProperty(key,value);}
+function clearTilt(){cancelAnimationFrame(tiltFrame);tiltFrame=0;for(const [key,value]of [['--tilt-x','0deg'],['--tilt-y','0deg'],['--card-shift-x','0px'],['--card-shift-y','0px']])builderCardWraps.forEach(wrap=>wrap.style.setProperty(key,value));}
 document.addEventListener('pointermove',event=>{
  if(recipient||event.pointerType!=='mouse'||!finePointer.matches||motionPreference.matches||cardWrap.querySelector(':focus-visible')||document.querySelector('#scratch-panel').classList.contains('active')){clearTilt();return;}
  const x=Math.max(-1,Math.min(1,event.clientX/innerWidth*2-1)),y=Math.max(-1,Math.min(1,event.clientY/innerHeight*2-1));
- cancelAnimationFrame(tiltFrame);tiltFrame=requestAnimationFrame(()=>{cardWrap.style.setProperty('--tilt-x',`${-y*4}deg`);cardWrap.style.setProperty('--tilt-y',`${x*7}deg`);cardWrap.style.setProperty('--card-shift-x',`${x*7}px`);cardWrap.style.setProperty('--card-shift-y',`${y*3}px`);});
+ cancelAnimationFrame(tiltFrame);tiltFrame=requestAnimationFrame(()=>{for(const cardWrap of builderCardWraps){cardWrap.style.setProperty('--tilt-x',`${-y*4}deg`);cardWrap.style.setProperty('--tilt-y',`${x*7}deg`);cardWrap.style.setProperty('--card-shift-x',`${x*7}px`);cardWrap.style.setProperty('--card-shift-y',`${y*3}px`);}});
 });
 document.documentElement.addEventListener('pointerleave',clearTilt);
 document.addEventListener('pointercancel',clearTilt);
 window.addEventListener('blur',clearTilt);
-cardWrap.addEventListener('focusin',clearTilt);
+builderCardWraps.forEach(wrap=>wrap.addEventListener('focusin',clearTilt));
 motionPreference.addEventListener('change',clearTilt);
 finePointer.addEventListener('change',clearTilt);
 $('#preview').addEventListener('click',clearTilt);

@@ -5,7 +5,7 @@
   "functions": {
     "api/index.mjs": {
       "maxDuration": 60,
-      "includeFiles": "{index.html,style.css,app.js,scratch.js,scene.js,penguin-studio.png,pip-cutout.png,analytics.js,generic-cover.svg,social-preview.png,favicon-32.png,icon-192.png,apple-touch-icon.png}"
+      "includeFiles": "{index.html,style.css,app.js,video.js,scratch.js,scene.js,penguin-studio.png,pip-cutout.png,analytics.js,generic-cover.svg,social-preview.png,favicon-32.png,icon-192.png,apple-touch-icon.png}"
     }
   },
   "rewrites": [

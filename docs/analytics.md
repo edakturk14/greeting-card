@@ -32,3 +32,7 @@ Use creator_opened → card_created as the main creation funnel; preview is opti
 ## Remaining live verification
 
 On production: preview, create, copy/share, open in a separate browser context, reveal, click Make a card, create another. Confirm events and normalized paths in PostHog. Inspect for absence of names/messages/photos/tokens. Exercise both reveal methods. Production QA counts unless filtered by a QA campaign. Do not claim dashboard verification before this check.
+
+## Video beta
+
+Server events: `video_started`, `video_completed`, `video_failed`. Browser events: `video_shared`, `video_played`. These use the same sanitized context and normalized recipient paths. Distinct random analytics insertion IDs do not contain job/share/resume tokens. Server completion/failure fires only after a durable terminal transition. Live delivery remains unverified. See [video beta](video-cards.md) for mocked verification and recovery limitations.

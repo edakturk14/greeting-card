@@ -1,0 +1,7 @@
+// Test-only dependency injection. This executable never calls fal or returns a real generation.
+import http from 'node:http';import {readFile} from 'node:fs/promises';import {VideoJobs,setVideoJobsForTests} from '../lib/video/jobs.mjs';import {FileVideoStore} from '../lib/video/store.mjs';
+if(process.env.NODE_ENV!=='test')throw Error('Tests only');
+const audio=await readFile(new URL('./fixtures/speech-fixture.mp3',import.meta.url)),video=await readFile(new URL('./fixtures/video-with-audio.mp4',import.meta.url));let counter=0;
+const provider={async submit(kind){return {id:kind+'-fixture-'+(++counter),status:'https://queue.fal.run/status',result:'https://queue.fal.run/result'};},async poll(request){return {payload:request.id.startsWith('voice')?{audio:{url:'https://v3.fal.media/mock.mp3'}}:{video:{url:'https://v3.fal.media/mock.mp4'}}};},async download(url){return url.endsWith('.mp3')?audio:video;}};
+setVideoJobsForTests(new VideoJobs({store:new FileVideoStore(process.env.DATA_DIR+'/video'),provider,config:()=>({enabled:true,configured:true,mocked:true,maxSeconds:10,maxWords:20,maxChars:200,reserveCents:65,voice:'Rachel',caps:{visitor:10,ip:10,daily:20,inflight:3,dailyCents:2000,totalCents:3000}})}));
+const {default:handler}=await import('../lib/app.mjs');http.createServer(handler).listen(Number(process.env.PORT),'0.0.0.0',()=>console.log('MOCK VIDEO SERVER — no paid provider calls'));

@@ -2,19 +2,20 @@
 <h1 align="center">SendFiggle</h1>
 <p align="center">A little surprise, delivered.</p>
 
-Create a personal scratch-to-reveal card in seconds. Choose a note, optionally add a name or photo, then share its unique link. The recipient opens an animated envelope and scratches the foil to reveal the surprise. No account required.
+Create a personal scratch-to-reveal card in seconds. Choose a note, add the recipient’s and sender’s names, optionally add a photo, then share its unique link. The recipient opens an animated envelope and scratches the foil to reveal the surprise. No account required.
 
 ![SendFiggle card builder](docs/screenshots/initial-desktop.png)
 
 ## What’s included
 
-- Four editable message presets and optional recipient/sender names.
+- Four editable message presets with required To and From names.
 - Photo upload or drag-and-drop, with server-side image validation.
 - Silver, pink and gold scratch foil; mouse, touch and accessible button reveal.
 - Real saved links, clipboard copying and native sharing where supported.
 - A floating, cursor-responsive paper card and Fig’s dedicated character section.
 - Responsive desktop/mobile layouts and automatic reduced-motion support.
 - Generic social previews, recipient noindex metadata and branded icons.
+- Optional Video card beta: photo + short note → synthetic speech → speaking MP4, with backend budget caps.
 - Supabase and PostHog integrations prepared for hosted deployment.
 
 **Status:** the local app and its creation/sharing flow are verified. Public deployment, hosted storage and live analytics still require account configuration and verification. `sendfiggle.com` is the intended domain; it is not assumed to be purchased or connected. No paid service is provisioned by this repository.
@@ -98,6 +99,12 @@ See [launch setup and service limits](docs/launch.md) for provider consideration
 - Recipient HTML/social metadata never embeds names, messages or uploaded photos. Recipient/API routes are noindex; the sitemap contains only the homepage. Noindex is not access control.
 - Analytics uses an explicit allowlist, normalized recipient paths and no personal card content. Local traffic is excluded.
 
+## Optional video beta
+
+The second builder tab creates a speaking video through fal (ElevenLabs stock TTS → Kling Avatar). Generation is off by default. It uses independent atomic budgets and durable jobs, measures speech before animation, and saves completed MP4s in private owned storage. Existing scratch cards keep working without these credentials.
+
+**Real provider generation and pet quality are not yet verified.** Automated tests use labeled media fixtures without paid requests. See [the video-card guide](docs/video-cards.md) for credentials, cost estimates, limits, recovery, screenshots and mocked recording.
+
 ## Analytics
 
 Use the hosted **PostHog** dashboard rather than an in-app admin panel. Events cover creator visits, previews, successful saves, copy/share actions, recipient opens, scratches, completed reveals and recipient-to-creator attribution where available.
@@ -140,4 +147,4 @@ scripts/                Build and brand-asset rendering
 archive/                Preserved earlier prototypes; not served by the app
 ```
 
-The app uses vanilla HTML/CSS/JavaScript, Node.js and Sharp. No accounts, payments, automated email, AI generation or video generation are included.
+The app uses vanilla HTML/CSS/JavaScript, Node.js and Sharp. No accounts, payments, automated email or voice cloning are included. The optional video beta is off by default and requires configured provider credentials; see [video setup, costs and verification](docs/video-cards.md).
