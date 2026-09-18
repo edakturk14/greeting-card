@@ -1,0 +1,17 @@
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
+const assert=require('node:assert/strict'),fs=require('node:fs/promises'),os=require('node:os'),path=require('node:path'),{spawn}=require('node:child_process'),sharp=require('sharp');
+(async()=>{const store=await fs.mkdtemp(path.join(os.tmpdir(),'fig-envelope-photo-'));let browser;const server=spawn(process.execPath,['server.mjs'],{env:{...process.env,PORT:'3004',DATA_DIR:store,APP_ENV:'development',SUPABASE_URL:'',SUPABASE_SERVICE_ROLE_KEY:'',PUBLIC_BASE_URL:'http://localhost:3004'},stdio:['ignore','pipe','pipe']});try{
+await new Promise((r,j)=>{server.stdout.once('data',r);server.once('exit',()=>j(Error('Test server failed')))});
+const photo=await sharp({create:{width:300,height:900,channels:3,background:'#00ff00'}}).png().toBuffer();
+const response=await fetch('http://localhost:3004/api/cards',{method:'POST',headers:{origin:'http://localhost:3004','content-type':'application/json'},body:JSON.stringify({to:'',from:'',cover:'This one’s for you.',message:'A photo just for you. '.repeat(14),color:'silver',photo:'data:image/png;base64,'+photo.toString('base64')})});assert.equal(response.status,201);const card=await response.json();
+browser=await chromium.launch();
+async function greens(page){const buffer=await page.screenshot({fullPage:true});const {data,info}=await sharp(buffer).removeAlpha().raw().toBuffer({resolveWithObject:true});let n=0;for(let i=0;i<data.length;i+=info.channels)if(data[i+1]>180&&data[i]<80&&data[i+2]<80)n++;return n;}
+for(const mobile of [false,true]){const context=await browser.newContext({viewport:mobile?{width:390,height:844}:{width:1280,height:900},isMobile:mobile,hasTouch:mobile,reducedMotion:mobile?'reduce':'no-preference'});const page=await context.newPage();await page.goto(card.url);await page.getByRole('button',{name:'Open your card',exact:true}).waitFor();await page.locator('#card-photo').evaluate(i=>i.decode());await page.waitForTimeout(250);
+assert.equal(await greens(page),0,`${mobile?'mobile':'desktop'} closed envelope must conceal every photo pixel`);
+await page.screenshot({path:`docs/screenshots/envelope-photo-${mobile?'mobile':'desktop'}.png`,fullPage:true});
+await page.getByRole('button',{name:'Open your card',exact:true}).click();await page.waitForFunction(()=>!document.querySelector('#card').inert);assert.equal(await greens(page),0,'foil conceals photo after opening');
+await page.getByRole('button',{name:'Reveal message',exact:true}).click();await page.waitForTimeout(950);assert.ok(await greens(page)>100,'photo visible after reveal');
+await page.reload();await page.getByRole('button',{name:'Open your card',exact:true}).waitFor();await page.locator('#card-photo').evaluate(i=>i.decode());assert.equal(await greens(page),0,'previously revealed photo must also stay hidden in closed envelope');
+await page.getByRole('button',{name:'Open your card',exact:true}).click();await page.waitForFunction(()=>!document.querySelector('#card').inert);assert.ok(await greens(page)>100,'remembered reveal remains visible after opening');await context.close();}
+console.log('PASS: real saved portrait photo + long note; desktop/mobile closed envelope, opaque foil, reveal, reload with remembered reveal; pixel checks show no photo leakage.');
+}finally{if(browser)await browser.close();server.kill();await fs.rm(store,{recursive:true,force:true});}})().catch(e=>{console.error(e);process.exit(1)});

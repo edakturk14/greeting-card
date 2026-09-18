@@ -1,0 +1,22 @@
+{
+  "name": "sendfiggle",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env.local server.mjs",
+    "test": "node --test tests/server.test.mjs",
+    "build": "node scripts/build.mjs",
+    "test:ui": "node tests/compact.cjs",
+    "record:demo": "node tests/record-demo.cjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "sharp": "^0.35.4"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
+  }
+}
