@@ -2,15 +2,24 @@
 
 Reviewed 18 September 2026. No paid service was provisioned. The project repository is https://github.com/edakturk14/greeting-card.
 
-## Account steps still needed
+## Live deployment
 
-1. Create a dedicated **Supabase Free** project. Run `db/schema.sql` in its SQL Editor. If the schema was previously applied, rerun it for the additive video tables. New cards require To and From; old nameless cards remain readable. Add the project URL and **service-role secret** to `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in `.env.local`. Never paste secrets into chat or client JavaScript.
-2. Create a **PostHog Cloud Free** project without adding a payment card. Put the project API key in `POSTHOG_KEY`; set `POSTHOG_HOST` to `https://us.i.posthog.com` or `https://eu.i.posthog.com`, matching its region. No personal/admin API key is needed.
-3. Use the GitHub repository `edakturk14/greeting-card` for this project.
-4. Import that repository into the existing Vercel account with the default `vercel.app` address. Set the root to this project and use Node 22. `vercel.json` provides build, function routes, headers, and daily cleanup. Set the above provider values plus `APP_ENV=production`, `APP_SECRET` and `CRON_SECRET` as server environment variables. The two secrets are already generated locally; keep them private. Set `PUBLIC_BASE_URL` to the canonical HTTPS deployment URL. Do not set `DATA_DIR` in production. Use `ANALYTICS_CAMPAIGNS` for approved nonpersonal campaign labels.
-5. Before launch: verify real hosted create/photo/reload in an independent session; verify anonymous table/bucket reads and writes are denied; inspect the PostHog events in `analytics.md`; run authenticated cleanup; inspect cron status and generic social previews. Actual Supabase schema execution and Vercel routing/build remain unverified until account setup.
+- Public URL: https://sendfiggle.vercel.app
+- Vercel project: `sendfiggle` on the existing Hobby account.
+- Supabase resource: `sendfiggle`, project reference `plabucqmyktefompiayg`, region `iad1`, verified `free` billing plan.
+- Production deployment: `dpl_4aJ32f3ziewsDy6CzZH9ip1EJayN`, READY on 18 September 2026.
+- `PUBLIC_BASE_URL` uses the public URL above. Paid video generation is disabled; local test-mode quota bypass is disabled in production.
+- Schema applied to the real database with certificate-verified TLS. Three RLS-protected tables, revoked anonymous table reads, and two private buckets verified.
+- Live desktop/mobile browser check passed: public access, required names, create with photo, remove/re-add photo, copy link, separate recipient session, concealed photo before envelope opens, reveal, persistent photo after refresh and return to builder.
+- PostHog analytics is not configured. Real video generation remains unverified and off.
+- GitHub auto-deployment connection was rejected by Vercel. Current deployment is a successful CLI deployment; future updates can use `npx vercel --prod`. Grant the Vercel GitHub app access to `edakturk14/greeting-card` before enabling automatic deployments.
+- Existing local cards are preserved and have not been migrated to Supabase.
 
-For local cloud testing, restart `npm start` after filling credentials. Leave `APP_ENV=development`; analytics excludes local traffic. Existing development files are preserved, not silently migrated into the cloud.
+## Database maintenance
+
+`node --env-file=.env.production.local scripts/setup-database.mjs` reapplies the idempotent schema in a transaction and verifies access controls. Pull the integration environment to that ignored file first. Secrets are never logged. `db/supabase-ca.crt` is Supabase’s public database CA certificate, downloaded over HTTPS from its official downloads bucket; TLS verification stays enabled.
+
+Use `node tests/live.cjs` for an explicit production smoke test. It creates one real test card and counts against normal quotas. No paid generation occurs. Local screenshots are under `docs/screenshots/live-*`.
 
 ## Selected services
 
@@ -34,6 +43,3 @@ Sources: [Supabase pricing](https://supabase.com/pricing), [billing FAQ](https:/
 
 Cards/photos remain until manually removed by the project owner. Browser storage holds anonymous analytics IDs, reveal flags, and session attribution, never the source-of-truth card database. Rate limits use HMAC-hashed IPs and expiring counters; the lifetime counter contains no IP. Providers may retain infrastructure logs including request paths; restrict access/retention in their settings. Analytics receives normalized paths only. Recipient HTML has noindex/noarchive and generic metadata, never a message/photo. A crawler possessing a token could retrieve the API; robots directives are not access control.
 
-## Current Vercel setup attempt (18 September 2026)
-
-The Vercel connector created production deployment `dpl_5uDbd18gCs8tU2nQ1VqQko1UiGHA` for `sendfiggle`, returning `https://sendfiggle-edakturk14s-projects.vercel.app`. An anonymous request redirects to Vercel authentication; this is not yet a verified public launch. The connected management tools return 404 for the new deployment, so build status and ownership/settings still need confirmation. No Supabase credentials are configured. Video generation remains disabled.

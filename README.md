@@ -6,6 +6,8 @@ Create a personal scratch-to-reveal card in seconds. Choose a note, add the reci
 
 ![SendFiggle card builder](docs/screenshots/initial-desktop.png)
 
+**Live app:** https://sendfiggle.vercel.app — Vercel Hobby + Supabase Free. Scratch-card sharing is verified; paid video generation is disabled.
+
 ## What’s included
 
 - Four editable message presets with required To and From names.

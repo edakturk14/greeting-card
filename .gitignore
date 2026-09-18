@@ -10,3 +10,7 @@ test-results/
 .DS_Store
 *.log
 docs/screenshots/recordings/
+.vercel
+
+# Local launch verification contains a private test-card link.
+test-results-live.json
